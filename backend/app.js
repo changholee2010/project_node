@@ -17,7 +17,7 @@ app.get("/api/board", (req, res) => {
   res.send({ title: "노드 api 서버 success!!!!" });
 });
 
-// vue.js build 이후
+// vue.js build 이후 test
 
 const path = require("path");
 const publicPath = path.join(__dirname, "public");
