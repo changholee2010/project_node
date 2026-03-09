@@ -1,44 +1,26 @@
-name: Build Vue and Deploy Node App
+ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
 
-on:
-  push:
-    branches:
-      - main
+export PATH=$PATH:/usr/local/bin
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+cd ~/project_node
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+echo "📦 Pull latest code"
+git pull origin main
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
+echo "📦 Install frontend deps"
+cd frontapp
+npm ci
 
-      - name: Install frontend dependencies
-        working-directory: ./frontapp
-        run: npm ci
+echo "⚙️ Build Vue"
+npm run build
 
-      - name: Build Vue app
-        working-directory: ./frontapp
-        run: npm run build
+echo "📦 Install backend deps"
+cd ../backend
+npm install
 
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+echo "🚀 Restart server"
+pm2 restart app || pm2 start app.js --name app
 
-      - name: SSH into server and deploy
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            cd ~/project_node
-            git pull origin main
-            npm install --prefix backend
-            pm2 restart app || pm2 start backend/app.js --name "app"
-            pm2 save
+pm2 save
+
 EOF
